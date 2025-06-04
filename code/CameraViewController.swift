@@ -28,6 +28,14 @@ class CameraViewController: UIViewController, PHPhotoLibraryChangeObserver {
         setupLensButtons()
         PHPhotoLibrary.shared().register(self) // Register for gallery updates
         setupTapToFocus()
+        
+        previewView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            previewView.topAnchor.constraint(equalTo: view.topAnchor),
+            previewView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            previewView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            previewView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+        ])
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -52,6 +60,8 @@ class CameraViewController: UIViewController, PHPhotoLibraryChangeObserver {
 
     func setupOverlayViews() {
         // Optional: Set overlay colors if needed
+        topOverlayView.backgroundColor = UIColor.black.withAlphaComponent(0.4)
+        bottomOverlayView.backgroundColor = UIColor.black.withAlphaComponent(0.4)
     }
 
     func findAvailableLenses() {
@@ -109,7 +119,7 @@ class CameraViewController: UIViewController, PHPhotoLibraryChangeObserver {
 
     func configurePreviewLayer() {
         previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-        previewLayer.videoGravity = .resizeAspect
+        previewLayer.videoGravity = .resizeAspectFill
         previewLayer.frame = previewView.bounds
         previewView.layer.insertSublayer(previewLayer, at: 0)
         previewView.bringSubviewToFront(bottomOverlayView)
@@ -131,15 +141,20 @@ class CameraViewController: UIViewController, PHPhotoLibraryChangeObserver {
         super.viewDidLayoutSubviews()
         previewLayer?.frame = previewView.bounds
 
-        let size = min(captureButton.frame.width, captureButton.frame.height)
-        captureButton.layer.cornerRadius = size / 2
-        captureButton.clipsToBounds = true
+            let fullWidth = previewView.bounds.width
+            let fullHeight = previewView.bounds.height
+            
+            // 3:4 기준 영역 높이 계산
+            let cropHeight = fullWidth * 4 / 3
+        
+        // 아래 여백을 더 길게 (예: 60pt 더 줌)
+            let totalVerticalPadding = fullHeight - cropHeight
+            let bottomPadding = totalVerticalPadding * 0.6
+            let topPadding = totalVerticalPadding - bottomPadding
 
-        let screenBounds = previewView.bounds
-        let overlayHeight = screenBounds.height / 8
-
-        topOverlayView.frame = CGRect(x: 0, y: 0, width: screenBounds.width, height: overlayHeight)
-        bottomOverlayView.frame = CGRect(x: 0, y: screenBounds.height - overlayHeight, width: screenBounds.width, height: overlayHeight)
+            // 오버레이 위치 설정
+        topOverlayView.frame = CGRect(x: 0, y: 0, width: fullWidth, height: topPadding)
+            bottomOverlayView.frame = CGRect(x: 0, y: fullHeight - bottomPadding, width: fullWidth, height: bottomPadding)
     }
 
     @IBAction func captureButtonTapped(_ sender: UIButton) {
